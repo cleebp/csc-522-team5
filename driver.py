@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from skimage import measure, morphology
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-INPUT_FOLDER = '/sample_images/'
+INPUT_FOLDER = 'sample_images/'
 patients = os.listdir(INPUT_FOLDER)
 patients.sort()
 
@@ -50,7 +50,7 @@ def get_pixels_hu(slices):
 
     return np.array(image, dtype=np.int16)
 
-first_patient = load_scan(INPUT_FOLDER + patients[0])
+first_patient = load_scan(INPUT_FOLDER + patients[1])
 first_patient_pixels = get_pixels_hu(first_patient)
 plt.hist(first_patient_pixels.flatten(), bins=80, color='c')
 plt.xlabel("Hounsfield Units (HU)")
