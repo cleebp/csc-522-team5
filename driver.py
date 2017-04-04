@@ -8,6 +8,10 @@ import matplotlib.pyplot as plt
 from skimage import measure, morphology
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
+MIN_BOUND = -1000.0
+MAX_BOUND = 400.0
+PIXEL_MEAN = 0.25
+
 INPUT_FOLDER = 'sample_images/'
 patients = os.listdir(INPUT_FOLDER)
 patients.sort()
@@ -25,6 +29,17 @@ def load_scan(path):
         s.SliceThickness = slice_thickness
 
     return slices
+
+# normalize image between -1000 and 400, anything over 400 is unnecesariy bones
+def normalize(image):
+    image = (image - MIN_BOUND) / (MAX_BOUND - MIN_BOUND)
+    image[image>1] = 1.
+    image[image<0] = 0.
+    return image
+
+def zero_center(image):
+    image = image - PIXEL_MEAN
+    return image
 
 # by default patient dicom files arent returned in hounsfield unit (hu) format
 # this function takes a dicom slice's pixel array and converts to HU
@@ -91,17 +106,59 @@ def plot_3d(image, threshold=-300):
 
     plt.show()
 
-first_patient = load_scan(INPUT_FOLDER + patients[1])
-first_patient_pixels = get_pixels_hu(first_patient)
-pix_resampled, spacing = resample(first_patient_pixels, first_patient, [1,1,1])
+for i in range(len(patients)):
+    # stupid mac stuff
+    if ".DS_Store" in patients[i]:
+        continue
+    print("now plotting patient " + str(i))
 
-plt.hist(pix_resampled.flatten(), bins=80, color='c')
-plt.xlabel("Hounsfield Units (HU)")
-plt.ylabel("Frequency")
-plt.show()
+    patient = load_scan(INPUT_FOLDER + patients[i])
+    patient_pixels = get_pixels_hu(patient)
+    pix_resampled, spacing = resample(patient_pixels, patient, [1, 1, 1])
+    patient_image = normalize(pix_resampled)
+    patient_image = zero_center(patient_image)
 
-# Show some slice in the middle
-plt.imshow(pix_resampled[80], cmap=plt.cm.gray)
-plt.show()
+    plt.hist(patient_pixels.flatten(), bins=80, color='c')
+    plt.xlabel("Hounsfield Units (HU)")
+    plt.ylabel("Frequency")
+    plt.title("Patient " + str(i) + ": no pre-processing.")
+    filename = "output/patient_" + str(i) + "_histo_no-pp.png"
+    plt.savefig(filename, bbox_inches='tight')
+    plt.close()
 
-plot_3d(pix_resampled, 400)
+    plt.imshow(patient_pixels[80], cmap=plt.cm.gray)
+    plt.title("Patient " + str(i) + ": no pre-processing.")
+    filename = "output/patient_" + str(i) + "_slice_no-pp.png"
+    plt.savefig(filename, bbox_inches='tight')
+    plt.close()
+
+    plt.hist(pix_resampled.flatten(), bins=80, color='c')
+    plt.xlabel("Hounsfield Units (HU)")
+    plt.ylabel("Frequency")
+    plt.title("Patient " + str(i) + ": resampled pixels.")
+    filename = "output/patient_" + str(i) + "_histo-pp1.png"
+    plt.savefig(filename, bbox_inches='tight')
+    plt.close()
+
+    plt.imshow(pix_resampled[80], cmap=plt.cm.gray)
+    plt.title("Patient " + str(i) + ": resampled pixels.")
+    filename = "output/patient_" + str(i) + "_slice_pp1.png"
+    plt.savefig(filename, bbox_inches='tight')
+    plt.close()
+
+    plt.hist(patient_image.flatten(), bins=80, color='c')
+    plt.xlabel("Hounsfield Units (HU)")
+    plt.ylabel("Frequency")
+    plt.title("Patient " + str(i) + ": resampled pixels, normalized, zero centered.")
+    filename = "output/patient_" + str(i) + "_histo_pp2.png"
+    plt.savefig(filename, bbox_inches='tight')
+    plt.close()
+
+    # Show some slice in the middle
+    plt.imshow(patient_image[80], cmap=plt.cm.gray)
+    plt.title("Patient " + str(i) + ": resampled pixels, normalized, zero centered.")
+    filename = "output/patient_" + str(i) + "_slice_pp2.png"
+    plt.savefig(filename, bbox_inches='tight')
+    plt.close()
+
+#plot_3d(pix_resampled, 400)
