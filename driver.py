@@ -2,12 +2,14 @@ import numpy as np
 import pandas as pd
 import dicom
 import os
+import time
 import scipy.ndimage
 import matplotlib.pyplot as plt
 
 from skimage import measure, morphology
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
+start_time = time.time()
 MIN_BOUND = -1000.0
 MAX_BOUND = 400.0
 PIXEL_MEAN = 0.25
@@ -117,48 +119,44 @@ for i in range(len(patients)):
     pix_resampled, spacing = resample(patient_pixels, patient, [1, 1, 1])
     patient_image = normalize(pix_resampled)
     patient_image = zero_center(patient_image)
+    filename = "output/patient_" + str(i)
 
     plt.hist(patient_pixels.flatten(), bins=80, color='c')
     plt.xlabel("Hounsfield Units (HU)")
     plt.ylabel("Frequency")
     plt.title("Patient " + str(i) + ": no pre-processing.")
-    filename = "output/patient_" + str(i) + "_histo_no-pp.png"
-    plt.savefig(filename, bbox_inches='tight')
+    plt.savefig(filename + "_histo_no-pp.png", bbox_inches='tight')
     plt.close()
 
     plt.imshow(patient_pixels[80], cmap=plt.cm.gray)
     plt.title("Patient " + str(i) + ": no pre-processing.")
-    filename = "output/patient_" + str(i) + "_slice_no-pp.png"
-    plt.savefig(filename, bbox_inches='tight')
+    plt.savefig(filename + "_slice_no-pp.png", bbox_inches='tight')
     plt.close()
 
     plt.hist(pix_resampled.flatten(), bins=80, color='c')
     plt.xlabel("Hounsfield Units (HU)")
     plt.ylabel("Frequency")
     plt.title("Patient " + str(i) + ": resampled pixels.")
-    filename = "output/patient_" + str(i) + "_histo-pp1.png"
-    plt.savefig(filename, bbox_inches='tight')
+    plt.savefig(filename + "_histo-pp1.png", bbox_inches='tight')
     plt.close()
 
     plt.imshow(pix_resampled[80], cmap=plt.cm.gray)
     plt.title("Patient " + str(i) + ": resampled pixels.")
-    filename = "output/patient_" + str(i) + "_slice_pp1.png"
-    plt.savefig(filename, bbox_inches='tight')
+    plt.savefig(filename + "_slice_pp1.png", bbox_inches='tight')
     plt.close()
 
     plt.hist(patient_image.flatten(), bins=80, color='c')
     plt.xlabel("Hounsfield Units (HU)")
     plt.ylabel("Frequency")
     plt.title("Patient " + str(i) + ": resampled pixels, normalized, zero centered.")
-    filename = "output/patient_" + str(i) + "_histo_pp2.png"
-    plt.savefig(filename, bbox_inches='tight')
+    plt.savefig(filename + "_histo_pp2.png", bbox_inches='tight')
     plt.close()
 
     # Show some slice in the middle
     plt.imshow(patient_image[80], cmap=plt.cm.gray)
     plt.title("Patient " + str(i) + ": resampled pixels, normalized, zero centered.")
-    filename = "output/patient_" + str(i) + "_slice_pp2.png"
-    plt.savefig(filename, bbox_inches='tight')
+    plt.savefig(filename + "_slice_pp2.png", bbox_inches='tight')
     plt.close()
 
 #plot_3d(pix_resampled, 400)
+print("--- running time: %s seconds ---" % (time.time() - start_time))
