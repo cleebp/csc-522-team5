@@ -6,6 +6,7 @@ import time
 import scipy.ndimage
 import matplotlib.pyplot as plt
 
+from pprint import pprint
 from skimage import measure, morphology
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
@@ -43,8 +44,7 @@ def zero_center(image):
     image = image - PIXEL_MEAN
     return image
 
-# by default patient dicom files arent returned in hounsfield unit (hu) format
-# this function takes a dicom slice's pixel array and converts to HU
+# take a dicom slice's pixel array and converts it to HU
 def get_pixels_hu(slices):
     image = np.stack([s.pixel_array for s in slices])
     # Convert to int16 (from sometimes int16),
@@ -69,8 +69,7 @@ def get_pixels_hu(slices):
 
     return np.array(image, dtype=np.int16)
 
-# different dicom scans can have different spacing, this function attempts to resample
-# to a standard spacing scale
+# different dicom scans can have different spacing, this resamples to a standard spacing scale
 def resample(image, scan, new_spacing=[1, 1, 1]):
     # Determine current pixel spacing
     spacing = np.array([scan[0].SliceThickness] + scan[0].PixelSpacing, dtype=np.float32)
@@ -108,55 +107,34 @@ def plot_3d(image, threshold=-300):
 
     plt.show()
 
-for i in range(len(patients)):
-    # stupid mac stuff
-    if ".DS_Store" in patients[i]:
-        continue
-    print("now plotting patient " + str(i))
-
-    patient = load_scan(INPUT_FOLDER + patients[i])
+# pre process image for given patient id, resample pixles, normalize, zero center
+def pre_processing(patient_id):
+    patient = load_scan(INPUT_FOLDER + patients[patient_id])
     patient_pixels = get_pixels_hu(patient)
     pix_resampled, spacing = resample(patient_pixels, patient, [1, 1, 1])
     patient_image = normalize(pix_resampled)
     patient_image = zero_center(patient_image)
-    filename = "output/patient_" + str(i)
+    return patient_image
 
-    plt.hist(patient_pixels.flatten(), bins=80, color='c')
-    plt.xlabel("Hounsfield Units (HU)")
-    plt.ylabel("Frequency")
-    plt.title("Patient " + str(i) + ": no pre-processing.")
-    plt.savefig(filename + "_histo_no-pp.png", bbox_inches='tight')
-    plt.close()
+def driver():
+    patient_images = []
+    driver_time = time.time()
+    #pre process and store processed images in list patient_images
+    for i in range(len(patients)):
+        # stupid mac stuff
+        if ".DS_Store" in patients[i]:
+            continue
+        print("Now pre-processing patient " + str(i))
+        new_time = time.time()
+        patient_images.append(pre_processing(i))
+        print("Time to complete pre-processing patient " + str(i) + ": %s seconds.\n" % (time.time() - new_time))
 
-    plt.imshow(patient_pixels[80], cmap=plt.cm.gray)
-    plt.title("Patient " + str(i) + ": no pre-processing.")
-    plt.savefig(filename + "_slice_no-pp.png", bbox_inches='tight')
-    plt.close()
+    print("Pre processed: " + str(len(patient_images)) + " patients in %s seconds." % (time.time() - driver_time))
+    # perform roi
 
-    plt.hist(pix_resampled.flatten(), bins=80, color='c')
-    plt.xlabel("Hounsfield Units (HU)")
-    plt.ylabel("Frequency")
-    plt.title("Patient " + str(i) + ": resampled pixels.")
-    plt.savefig(filename + "_histo-pp1.png", bbox_inches='tight')
-    plt.close()
+    # perform feature selection
 
-    plt.imshow(pix_resampled[80], cmap=plt.cm.gray)
-    plt.title("Patient " + str(i) + ": resampled pixels.")
-    plt.savefig(filename + "_slice_pp1.png", bbox_inches='tight')
-    plt.close()
+    # perform classification
 
-    plt.hist(patient_image.flatten(), bins=80, color='c')
-    plt.xlabel("Hounsfield Units (HU)")
-    plt.ylabel("Frequency")
-    plt.title("Patient " + str(i) + ": resampled pixels, normalized, zero centered.")
-    plt.savefig(filename + "_histo_pp2.png", bbox_inches='tight')
-    plt.close()
-
-    # Show some slice in the middle
-    plt.imshow(patient_image[80], cmap=plt.cm.gray)
-    plt.title("Patient " + str(i) + ": resampled pixels, normalized, zero centered.")
-    plt.savefig(filename + "_slice_pp2.png", bbox_inches='tight')
-    plt.close()
-
-#plot_3d(pix_resampled, 400)
-print("--- running time: %s seconds ---" % (time.time() - start_time))
+driver()
+print("--- total running time: %s seconds ---" % (time.time() - start_time))
