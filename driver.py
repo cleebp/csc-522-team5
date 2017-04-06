@@ -7,6 +7,7 @@ import scipy.ndimage
 import matplotlib.pyplot as plt
 
 from pprint import pprint
+from sklearn.cluster import KMeans
 from skimage import measure, morphology
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
@@ -116,6 +117,22 @@ def pre_processing(patient_id):
     patient_image = zero_center(patient_image)
     return patient_image
 
+# perfrom region of interest selection
+def roi_selection(image):
+    middle = image[100:400, 100:400]
+    # perform KMeans looking for two lungs
+    kmeans = KMeans(n_clusters=2).fit(np.reshape(middle, [np.prod(middle.shape), 1]))
+    centers = sorted(kmeans.cluster_centers_.flatten())
+    # threshold the image with our cluster centers
+    threshold = np.mean(centers)
+    thresh_image = np.where(image < threshold, 1.0, 0.0)
+
+    plt.imshow(thresh_image[80], cmap=plt.cm.gray)
+    plt.show()
+
+    #return roi_image
+
+
 def driver():
     patient_images = []
     driver_time = time.time()
@@ -126,8 +143,15 @@ def driver():
             continue
         print("Now pre-processing patient " + str(i))
         new_time = time.time()
-        patient_images.append(pre_processing(i))
+        proc_image = pre_processing(i)
+        patient_images.append(proc_image)
         print("Time to complete pre-processing patient " + str(i) + ": %s seconds.\n" % (time.time() - new_time))
+
+        #placing roi here for now, that way i can debug without waiting 7 minutes, will move below later
+        new_time = time.time()
+        print("Now performing ROI on patient " + str(i))
+        roi_selection(proc_image)
+        print("Time to complete ROI selection on patient " + str(i) + ": %s seconds.\n" % (time.time() - new_time))
 
     print("Pre processed: " + str(len(patient_images)) + " patients in %s seconds." % (time.time() - driver_time))
     # perform roi
