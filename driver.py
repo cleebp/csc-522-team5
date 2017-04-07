@@ -6,9 +6,8 @@ import time
 import scipy.ndimage
 import matplotlib.pyplot as plt
 
-from pprint import pprint
-from sklearn.cluster import KMeans
-from skimage import measure, morphology
+from skimage import measure
+from scipy.ndimage import morphology
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 start_time = time.time()
@@ -50,7 +49,8 @@ def get_pixels_hu(slices):
     image = np.stack([s.pixel_array for s in slices])
     # Convert to int16 (from sometimes int16),
     # should be possible as values should always be low enough (<32k)
-    image = image.astype(np.int16)
+    #image = image.astype(np.int16)
+    image = image.astype(np.float64)
 
     # Set outside-of-scan pixels to 0
     # The intercept is usually -1024, so air is approximately 0
@@ -85,6 +85,55 @@ def resample(image, scan, new_spacing=[1, 1, 1]):
 
     return image, new_spacing
 
+def largest_label_volume(im, bg=-1):
+    vals, counts = np.unique(im, return_counts=True)
+
+    counts = counts[vals != bg]
+    vals = vals[vals != bg]
+
+    if len(counts) > 0:
+        return vals[np.argmax(counts)]
+    else:
+        return None
+
+def segment_lung_mask(image, fill_lung_structures=True):
+    # not actually binary, but 1 and 2.
+    # 0 is treated as background, which we do not want
+    binary_image = np.array(image > -320, dtype=np.int8) + 1
+    labels = measure.label(binary_image)
+
+    # Pick the pixel in the very corner to determine which label is air.
+    #   Improvement: Pick multiple background labels from around the patient
+    #   More resistant to "trays" on which the patient lays cutting the air
+    #   around the person in half
+    background_label = labels[0, 0, 0]
+
+    # Fill the air around the person
+    binary_image[background_label == labels] = 2
+
+    # Method of filling the lung structures (that is superior to something like
+    # morphological closing)
+    if fill_lung_structures:
+        # For every slice we determine the largest solid structure
+        for i, axial_slice in enumerate(binary_image):
+            axial_slice = axial_slice - 1
+            labeling = measure.label(axial_slice)
+            l_max = largest_label_volume(labeling, bg=0)
+
+            if l_max is not None:  # This slice contains some lung
+                binary_image[i][labeling != l_max] = 1
+
+    binary_image -= 1  # Make the image actual binary
+    binary_image = 1 - binary_image  # Invert it, lungs are now 1
+
+    # Remove other air pockets insided body
+    labels = measure.label(binary_image, background=0)
+    l_max = largest_label_volume(labels, bg=0)
+    if l_max is not None:  # There are air pockets
+        binary_image[labels != l_max] = 0
+
+    return binary_image
+
 # 3D plot with matplotlib
 def plot_3d(image, threshold=-300):
     # Position the scan upright,
@@ -112,49 +161,53 @@ def plot_3d(image, threshold=-300):
 def pre_processing(patient_id):
     patient = load_scan(INPUT_FOLDER + patients[patient_id])
     patient_pixels = get_pixels_hu(patient)
-    pix_resampled, spacing = resample(patient_pixels, patient, [1, 1, 1])
-    patient_image = normalize(pix_resampled)
-    patient_image = zero_center(patient_image)
+    patient_image, spacing = resample(patient_pixels, patient, [1, 1, 1])
+    #patient_image = normalize(patient_image)
+    #patient_image = zero_center(patient_image)
     return patient_image
 
 # perfrom region of interest selection
 def roi_selection(image):
-    middle = image[100:400, 100:400]
-    # perform KMeans looking for two lungs
-    kmeans = KMeans(n_clusters=2).fit(np.reshape(middle, [np.prod(middle.shape), 1]))
-    centers = sorted(kmeans.cluster_centers_.flatten())
-    # threshold the image with our cluster centers
-    threshold = np.mean(centers)
-    thresh_image = np.where(image < threshold, 1.0, 0.0)
+    segmented_lungs = segment_lung_mask(image, False)
+    mask = morphology.binary_fill_holes(
+        morphology.binary_dilation(
+            morphology.binary_fill_holes(segmented_lungs > 0),
+            iterations=4)
+    )
 
-    plt.imshow(thresh_image[80], cmap=plt.cm.gray)
-    plt.show()
+    return mask
 
-    #return roi_image
-
-
+# main class driver
 def driver():
     patient_images = []
     driver_time = time.time()
-    #pre process and store processed images in list patient_images
     for i in range(len(patients)):
         # stupid mac stuff
         if ".DS_Store" in patients[i]:
             continue
-        print("Now pre-processing patient " + str(i))
+
+        output_path = "output/roi/patient_" + str(i) + "_comparison.png"
+        # pre process and store processed images in list patient_images
         new_time = time.time()
+        print("Now pre-processing patient " + str(i))
         proc_image = pre_processing(i)
         patient_images.append(proc_image)
         print("Time to complete pre-processing patient " + str(i) + ": %s seconds.\n" % (time.time() - new_time))
 
-        #placing roi here for now, that way i can debug without waiting 7 minutes, will move below later
+        # segment the lungs and place in mask
         new_time = time.time()
         print("Now performing ROI on patient " + str(i))
-        roi_selection(proc_image)
+        mask = roi_selection(proc_image)
         print("Time to complete ROI selection on patient " + str(i) + ": %s seconds.\n" % (time.time() - new_time))
 
-    print("Pre processed: " + str(len(patient_images)) + " patients in %s seconds." % (time.time() - driver_time))
-    # perform roi
+        # save plots of processed image vs mask
+        fig, ax = plt.subplots(1, 2, figsize=[10, 10])
+        plt.title("Patient " + str(i) + "'s pre-processed slice and ROI mask")
+        ax[0].imshow(proc_image[100], cmap='gray')
+        ax[1].imshow(proc_image[100] * mask[100], cmap='gray')
+        plt.savefig(output_path, bbox_inches='tight')
+        plt.close()
+
 
     # perform feature selection
 
