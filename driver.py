@@ -1,3 +1,4 @@
+from numpy import *
 import numpy as np
 import pandas as pd
 import dicom
@@ -9,6 +10,9 @@ import matplotlib.pyplot as plt
 from skimage import measure
 from scipy.ndimage import morphology
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+from scipy.ndimage.filters import gaussian_filter
+from scipy.linalg import norm
 
 start_time = time.time()
 MIN_BOUND = -1000.0
@@ -177,11 +181,57 @@ def roi_selection(image):
 
     return mask
 
+MIN_RADIUS = 4
+MAX_RADIUS = 16
+FILTERS_AMOUNT = 6
+
+def get_scales(bottom=MIN_RADIUS, top=MAX_RADIUS,
+               amount=FILTERS_AMOUNT):
+    radius = (top / bottom) ** (1. / (amount - 1))
+    sigmas = [bottom / 4.]
+    for i in range(amount - 1):
+        sigmas.append(sigmas[0] * (radius ** i + 1))
+    return sigmas
+
+def div_of_norm_grad(sigma, patient):
+    # Compute gradient
+    grad = asarray(gradient(patient))
+    # Normalize it with smooth const 1e-3
+    grad /= norm(grad, axis=0) + 1e-3
+    # Apply gaussian filter aimed to
+    grad = [gaussian_filter(deriv, sigma=sigma) for deriv in grad]
+    return sum([gradient(el, axis=i)
+                for i, el in enumerate(grad)], axis=0)
+
+
+def maxima_divergence(patient, mask, sigmas):
+    divs = list()
+
+    for sigma in sigmas:
+        divs.append(div_of_norm_grad(sigma, patient=patient))
+    # with Pool(CPU) as pool:
+    #    divs = pool.map(
+    #        functools.partial(div_of_norm_grad,
+    #                          patient=patient),
+    #        sigmas
+    #    )
+    divs = -1 * asarray(divs) * mask
+    return divs.max(axis=0)
+
+def feature_extraction(patient, mask):
+    sigmas = get_scales()
+    mdng = maxima_divergence(patient, mask, sigmas)
+    mdng_max = mdng.max()
+    mdng_std = mdng.std()
+    print("max:\t%f\nstd:\t%f" % (mdng_max, mdng_std))
+
+
 # main class driver
 def driver():
     patient_images = []
     driver_time = time.time()
-    for i in range(len(patients)):
+    #for i in range(len(patients)):
+    for i in range(1):
         # stupid mac stuff
         if ".DS_Store" in patients[i]:
             continue
@@ -199,6 +249,11 @@ def driver():
         print("Now performing ROI on patient " + str(i))
         mask = roi_selection(proc_image)
         print("Time to complete ROI selection on patient " + str(i) + ": %s seconds.\n" % (time.time() - new_time))
+
+        new_time = time.time()
+        print("Now performing Feature Extraction on patient " + str(i))
+        feature_extraction(proc_image, mask)
+        print("Time to complete Feature Extraction on patient " + str(i) + ": %s seconds.\n" % (time.time() - new_time))
 
         # save plots of processed image vs mask
         fig, ax = plt.subplots(1, 2, figsize=[10, 10])
