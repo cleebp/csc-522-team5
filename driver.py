@@ -1,6 +1,5 @@
 from numpy import *
 import numpy as np
-import pandas as pd
 import dicom
 import os
 import time
@@ -14,10 +13,14 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from scipy.ndimage.filters import gaussian_filter
 from scipy.linalg import norm
 
+# constants:
 start_time = time.time()
 MIN_BOUND = -1000.0
 MAX_BOUND = 400.0
 PIXEL_MEAN = 0.25
+MIN_RADIUS = 4
+MAX_RADIUS = 16
+FILTERS_AMOUNT = 6
 
 INPUT_FOLDER = 'sample_images/'
 patients = os.listdir(INPUT_FOLDER)
@@ -181,10 +184,6 @@ def roi_selection(image):
 
     return mask
 
-MIN_RADIUS = 4
-MAX_RADIUS = 16
-FILTERS_AMOUNT = 6
-
 def get_scales(bottom=MIN_RADIUS, top=MAX_RADIUS,
                amount=FILTERS_AMOUNT):
     radius = (top / bottom) ** (1. / (amount - 1))
@@ -203,18 +202,10 @@ def div_of_norm_grad(sigma, patient):
     return sum([gradient(el, axis=i)
                 for i, el in enumerate(grad)], axis=0)
 
-
 def maxima_divergence(patient, mask, sigmas):
     divs = list()
-
     for sigma in sigmas:
         divs.append(div_of_norm_grad(sigma, patient=patient))
-    # with Pool(CPU) as pool:
-    #    divs = pool.map(
-    #        functools.partial(div_of_norm_grad,
-    #                          patient=patient),
-    #        sigmas
-    #    )
     divs = -1 * asarray(divs) * mask
     return divs.max(axis=0)
 
@@ -225,18 +216,14 @@ def feature_extraction(patient, mask):
     mdng_std = mdng.std()
     print("max:\t%f\nstd:\t%f" % (mdng_max, mdng_std))
 
-
 # main class driver
 def driver():
     patient_images = []
-    driver_time = time.time()
-    #for i in range(len(patients)):
-    for i in range(1):
+    for i in range(len(patients)):
         # stupid mac stuff
         if ".DS_Store" in patients[i]:
             continue
 
-        output_path = "output/roi/patient_" + str(i) + "_comparison.png"
         # pre process and store processed images in list patient_images
         new_time = time.time()
         print("Now pre-processing patient " + str(i))
@@ -254,14 +241,6 @@ def driver():
         print("Now performing Feature Extraction on patient " + str(i))
         feature_extraction(proc_image, mask)
         print("Time to complete Feature Extraction on patient " + str(i) + ": %s seconds.\n" % (time.time() - new_time))
-
-        # save plots of processed image vs mask
-        fig, ax = plt.subplots(1, 2, figsize=[10, 10])
-        plt.title("Patient " + str(i) + "'s pre-processed slice and ROI mask")
-        ax[0].imshow(proc_image[100], cmap='gray')
-        ax[1].imshow(proc_image[100] * mask[100], cmap='gray')
-        plt.savefig(output_path, bbox_inches='tight')
-        plt.close()
 
 
     # perform feature selection
