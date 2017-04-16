@@ -48,9 +48,8 @@ print(test_ids[:3])
 
 
 
-df = pd.read_csv('sample_truth.csv', error_bad_lines=False)
+df = pd.read_csv('sample_truth.csv')
 print(df)
-df.head()
 
 
 train_labels = df["cancer"][df["id"].isin(train_ids)].values

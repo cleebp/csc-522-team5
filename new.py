@@ -63,8 +63,8 @@ def get_batches(patients):
     for ix, patient in enumerate(patients):
         scan = load_scan(INPUT_FOLDER + patient)
         slices = get_pixels_hu(scan)
-        if ix % 10 == 0:
-            print("Processed patient {0} of {1}".format(ix, len(patients)))
+        #if ix % 10 == 0:
+        print("Processed patient {0} of {1}".format(ix, len(patients)))
         yield scan, slices, patient
 
 
@@ -236,6 +236,3 @@ print("Max pixel value:", np.max(final))
 print("Min pixel value:", np.min(final))
 print("Mean pixel value:", np.mean(final))
 print("Pixel Std. Dev:", np.std(final))
-
-
-
