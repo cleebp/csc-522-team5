@@ -5,14 +5,21 @@ import os
 import matplotlib.pyplot as plt
 import cv2
 import math
+import time
 
+start_time = time.time()
 IMG_SIZE_PX = 50
 SLICE_COUNT = 20
 
+#n-sized chunks from list l
 def chunks(l, n):
+    #for i in range(0, len(l), n):
+    #    yield l[i:i + n]
+    count = 0
     for i in range(0, len(l), n):
-        yield l[i:i + n]
-
+        if (count < SLICE_COUNT):
+            yield l[i:i + n]
+            count = count + 1
 
 def mean(a):
     return sum(a) / len(a)
@@ -29,7 +36,8 @@ def process_data(patient,labels_df,img_px_size=50, hm_slices=20, visualize=False
     new_slices = []
     slices = [cv2.resize(np.array(each_slice.pixel_array),(img_px_size,img_px_size)) for each_slice in slices]
     
-    chunk_sizes = int(math.ceil(len(slices) / hm_slices))
+    #chunk_sizes = int(math.ceil(len(slices) / hm_slices))
+    chunk_sizes = math.floor(len(slices) / hm_slices)
     for slice_chunk in chunks(slices, chunk_sizes):
         slice_chunk = list(map(mean, zip(*slice_chunk)))
         new_slices.append(slice_chunk)
@@ -64,7 +72,8 @@ def process_data(patient,labels_df,img_px_size=50, hm_slices=20, visualize=False
     return np.array(new_slices),label
 
 #                                               stage 1 for real.
-data_dir = 'sample_images/'
+#data_dir = 'sample_images/'
+data_dir = 'D:/stage1/stage1/'
 patients = os.listdir(data_dir)
 labels = pd.read_csv('data/stage1_labels.csv', index_col=0)
 
@@ -80,3 +89,4 @@ for num,patient in enumerate(patients):
         print('This is unlabeled data!')
 
 np.save('muchdata-{}-{}-{}.npy'.format(IMG_SIZE_PX,IMG_SIZE_PX,SLICE_COUNT), much_data)
+print("Total running time: %s." % (time.time() - start_time))

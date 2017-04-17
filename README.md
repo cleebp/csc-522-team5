@@ -16,3 +16,20 @@ The goal of this project is to detect presence of lung cancer nodules from respe
 ## Datasets
 
 Datasets, and project problem, are taken from the [Kaggle Data Science Bowl 2017](https://www.kaggle.com/c/data-science-bowl-2017/data).
+
+During development we used the sample_images/ dataset since it only contains 20 patients, for our actual results however we used the stage1/ dataset which contains close to 1500 usable patients.
+
+## How to Run
+
+First you need to run `preprocess.py` in order to produce `muchdata-50-50-20.py`. Once you have built `muchdata-50-50-20.py` you can run `conv_nn.py`. If you have the option to use tensorflow on your GPU everything will run MUCH faster. It takes ~320 seconds to run `conv_nn.py` with 10 epochs on a GTX 1070 with 8.00GiB of ram and a memory clock rate of 1.7715 GHz.
+
+## Results
+
+Output from running `conv_nn.py` with 10 epochs on a GTX 1070.
+
+`Finishing accuracy:`
+`Accuracy: 0.66`
+`fitment percent: 1.0`
+`Total running time: 321.9375514984131 seconds.`
+
+Should put more info here.

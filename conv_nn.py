@@ -1,6 +1,8 @@
 import tensorflow as tf
 import numpy as np
+import time
 
+start_time = time.time()
 IMG_SIZE_PX = 50
 SLICE_COUNT = 20
 
@@ -53,10 +55,10 @@ def convolutional_neural_network(x):
 
 much_data = np.load('muchdata-50-50-20.npy')
 # If you are working with the basic sample data, use maybe 2 instead of 100 here... you don't have enough data to really do this
-train_data = much_data[:-2]
-validation_data = much_data[-2:]
-#train_data = much_data[:-100]
-#validation_data = much_data[-100:]
+#train_data = much_data[:-2]
+#validation_data = much_data[-2:]
+train_data = much_data[:-100]
+validation_data = much_data[-100:]
 
 def train_neural_network(x):
     prediction = convolutional_neural_network(x)
@@ -72,6 +74,7 @@ def train_neural_network(x):
         
         for epoch in range(hm_epochs):
             epoch_loss = 0
+            new_time = time.time()
             for data in train_data:
                 total_runs += 1
                 try:
@@ -88,16 +91,17 @@ def train_neural_network(x):
                     #print(str(e))
             
             print('Epoch', epoch+1, 'completed out of',hm_epochs,'loss:',epoch_loss)
-
+            print("Time to complete: %s seconds." % (time.time() - new_time))
             correct = tf.equal(tf.argmax(prediction, 1), tf.argmax(y, 1))
             accuracy = tf.reduce_mean(tf.cast(correct, 'float'))
 
-            print('Accuracy:',accuracy.eval({x:[i[0] for i in validation_data], y:[i[1] for i in validation_data]}))
+            print('Accuracy:',accuracy.eval({x:[i[0] for i in validation_data], y:[i[1] for i in validation_data]}),"\n")
             
         print('Done. Finishing accuracy:')
         print('Accuracy:',accuracy.eval({x:[i[0] for i in validation_data], y:[i[1] for i in validation_data]}))
         
         print('fitment percent:',successful_runs/total_runs)
+        print("Total running time: %s seconds." % (time.time() - start_time))
 
 # Run this locally:
 train_neural_network(x)
