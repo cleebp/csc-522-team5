@@ -22,3 +22,4 @@ sample_images/
 .idea/
 output/
 muchdata-50-50-20.npy
+output.txt

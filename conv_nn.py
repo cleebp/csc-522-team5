@@ -61,6 +61,7 @@ train_data = much_data[:-100]
 validation_data = much_data[-100:]
 
 def train_neural_network(x):
+    iter_time = time.time()
     prediction = convolutional_neural_network(x)
     cost = tf.reduce_mean( tf.nn.softmax_cross_entropy_with_logits(logits=prediction, labels=y) )
     optimizer = tf.train.AdamOptimizer(learning_rate=1e-3).minimize(cost)
@@ -98,10 +99,27 @@ def train_neural_network(x):
             print('Accuracy:',accuracy.eval({x:[i[0] for i in validation_data], y:[i[1] for i in validation_data]}),"\n")
             
         print('Done. Finishing accuracy:')
-        print('Accuracy:',accuracy.eval({x:[i[0] for i in validation_data], y:[i[1] for i in validation_data]}))
+        accuracy = accuracy.eval({x:[i[0] for i in validation_data], y:[i[1] for i in validation_data]})
+        print('Accuracy:',accuracy)
         
         print('fitment percent:',successful_runs/total_runs)
-        print("Total running time: %s seconds." % (time.time() - start_time))
+        print("Total running time: %s seconds." % (time.time() - iter_time))
+
+        fh = open("output.txt", "a+")
+        fh.write(str(accuracy) + "\n")
+        fh.close()
+        return(accuracy)
 
 # Run this locally:
-train_neural_network(x)
+fh = open("output.txt", "a+")
+fh.write("=== Beginning new Trial ===\n")
+fh.close()
+
+print("Beginning first cnn interation...")
+accuracy = train_neural_network(x)
+while(accuracy < 0.69):
+    print("\n === Accuracy is less than target, trying a new iteration... ===")
+    accuracy = train_neural_network(x)
+
+print("Success!")
+print("It took %s seconds to achieve an accuracy of 0.69" % (time.time() - start_time))
