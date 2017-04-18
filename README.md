@@ -25,11 +25,26 @@ First you need to run `preprocess.py` in order to produce `muchdata-50-50-20.py`
 
 ## Results
 
-Output from running `conv_nn.py` with 10 epochs on a GTX 1070.
+Best output obtained from running `conv_nn.py` with 10 epochs on a GTX 1070.
 
 `Finishing accuracy:`
-`Accuracy: 0.66`
+
+`Accuracy: 0.67`
+
 `fitment percent: 1.0`
+
 `Total running time: 321.9375514984131 seconds.`
 
-Should put more info here.
+After running for 10 different trials our average accuracy came out to `0.589`, this is further discussed in our report.
+
+## Dependencies
+
+In order to run our code on GPU to obtain similar results you will need the following:
+- The `stage1/` dataset from [Kaggle](https://www.kaggle.com/c/data-science-bowl-2017/data)
+- [Python 3.5.x 64 bit](https://www.python.org/downloads/release/python-352/) - it is critical you install the 64 bit version not the 32 bit version
+- [TensorFlow 1.0 GPU Installation](https://www.tensorflow.org/install/install_windows) - `pip3 install --upgrade tensorflow-gpu`
+- [NumPy](http://www.numpy.org/)
+- [Pandas](http://pandas.pydata.org/)
+- dicom - `pip install --upgrade dicom`
+- [matplotlib](https://matplotlib.org/)
+- cv2 - `pip install --upgrade opencv`
