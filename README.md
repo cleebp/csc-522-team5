@@ -1,5 +1,5 @@
-# CSC 522 Team 5’s Group Project
-## Lung Cancer Classification
+# Lung Cancer Classification on CT Scan Images Using a 3D Convolutional Neural Network
+## CSC 522 Team 5’s Group Project
 
 ![header](https://www.kaggle.io/svf/1028993/84c1f676416439fdd579990e4105d8c7/__results___files/__results___7_1.png)
 
