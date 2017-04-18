@@ -1,13 +1,13 @@
-# CSC 522 Team 5’s Group Project
-## Lung Cancer Classification
+# Lung Cancer Classification on CT Scan Images Using a 3D Convolutional Neural Network
+## CSC 522 Team 5’s Group Project
 
 ![header](https://www.kaggle.io/svf/1028993/84c1f676416439fdd579990e4105d8c7/__results___files/__results___7_1.png)
 
-The goal of this project is to detect presence of lung cancer nodules from respective CT scan images. The dataset used is a large collection of CT lung scan slices with ground truth values divided into training and test sets. A linear classification algorithm would be developed using this training data to classify our test CT scans to evaluate its accuracy.
+The goal of this project was to detect the presence of lung cancer nodules from a large dataset of CT scan images. The dataset used contained CT scan images for over 1500 patients and contained respective ground truth values. From this dataset a 3D convolutional neural network was trained and applied to the data, resulting in an average accuracy of 0.589 which is comparable with other modern classification approaches on the same dataset.
 
 ## Team Members
 - [Brian Clee](https://github.com/cleebp)
-- Christopher Japit
+- [Christopher Japit](https://github.com/cjapit)
 - [Debosmita Das](https://github.com/debosmitadas28)
 - [Mohit Sardar](https://github.com/mohits19)
 - [Rishabh Sinha](https://github.com/Rishabh2693)
@@ -16,3 +16,35 @@ The goal of this project is to detect presence of lung cancer nodules from respe
 ## Datasets
 
 Datasets, and project problem, are taken from the [Kaggle Data Science Bowl 2017](https://www.kaggle.com/c/data-science-bowl-2017/data).
+
+During development we used the sample_images/ dataset since it only contains 20 patients, for our actual results however we used the stage1/ dataset which contains close to 1500 usable patients.
+
+## How to Run
+
+First you need to run `preprocess.py` in order to produce `muchdata-50-50-20.py`. Once you have built `muchdata-50-50-20.py` you can run `conv_nn.py`. If you have the option to use tensorflow on your GPU everything will run MUCH faster. It takes ~320 seconds to run `conv_nn.py` with 10 epochs on a GTX 1070 with 8.00GiB of ram and a memory clock rate of 1.7715 GHz.
+
+## Results
+
+Best output obtained from running `conv_nn.py` with 10 epochs on a GTX 1070.
+
+`Finishing accuracy:`
+
+`Accuracy: 0.67`
+
+`fitment percent: 1.0`
+
+`Total running time: 321.9375514984131 seconds.`
+
+After running for 10 different trials our average accuracy came out to `0.589`, this is further discussed in our report.
+
+## Dependencies
+
+In order to run our code on GPU to obtain similar results you will need the following:
+- The `stage1/` dataset from [Kaggle](https://www.kaggle.com/c/data-science-bowl-2017/data)
+- [Python 3.5.x 64 bit](https://www.python.org/downloads/release/python-352/) - it is critical you install the 64 bit version not the 32 bit version
+- [TensorFlow 1.0 GPU Installation](https://www.tensorflow.org/install/install_windows) - `pip3 install --upgrade tensorflow-gpu`
+- [NumPy](http://www.numpy.org/)
+- [Pandas](http://pandas.pydata.org/)
+- dicom - `pip install --upgrade dicom`
+- [matplotlib](https://matplotlib.org/)
+- cv2 - `pip install --upgrade opencv`
