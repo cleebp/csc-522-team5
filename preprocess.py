@@ -1,92 +1,102 @@
+"""
+  @title: preprocess.py
+  @version: 4/19/17
+  @authors: Team 5
+"""
+
+# imports
 import numpy as np
 import pandas as pd
 import dicom
 import os
-import matplotlib.pyplot as plt
 import cv2
 import math
 import time
 
+# constants and globals
 start_time = time.time()
-IMG_SIZE_PX = 50
-SLICE_COUNT = 20
+#data_dir = 'D:/stage1/stage1/' # obviously change  this to the correct location
+data_dir = 'sample_images/'
+patients = os.listdir(data_dir)
+labels = pd.read_csv('data/stage1_labels.csv', index_col = 0)
+processed_data = []
+img_dimension = 50
+num_slices = 20
 
-#n-sized chunks from list l
-def chunks(l, n):
-    #for i in range(0, len(l), n):
-    #    yield l[i:i + n]
-    count = 0
-    for i in range(0, len(l), n):
-        if (count < SLICE_COUNT):
-            yield l[i:i + n]
-            count = count + 1
-
-def mean(a):
-    return sum(a) / len(a)
-
-
-def process_data(patient,labels_df,img_px_size=50, hm_slices=20, visualize=False):
-    
-    label = labels_df.get_value(patient, 'cancer')
-    print(patient, label)
+# function for pre-processing a single patient
+def preprocess(patient):
+    # reference for reading patient slices: https://www.kaggle.com/dfoozee/data-science-bowl-2017/full-preprocessing-tutorial
+    patient_label = labels.get_value(patient, 'cancer')
+    print("\tpatient ID: " + patient)
+    print("\tpatient Label: " + str(patient_label))
     path = data_dir + patient
     slices = [dicom.read_file(path + '/' + s) for s in os.listdir(path)]
     slices.sort(key = lambda x: int(x.ImagePositionPatient[2]))
 
-    new_slices = []
-    slices = [cv2.resize(np.array(each_slice.pixel_array),(img_px_size,img_px_size)) for each_slice in slices]
-    
-    #chunk_sizes = int(math.ceil(len(slices) / hm_slices))
-    chunk_sizes = math.floor(len(slices) / hm_slices)
+    chunk_slices = []
+    slices = [cv2.resize(np.array(n.pixel_array),(img_dimension,img_dimension)) for n in slices]
+
+    # reference for all of this chunking madness: http://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks
+    # this code is pretty gross, TODO: clean this bit up
+    chunk_sizes = math.floor(len(slices) / num_slices)
     for slice_chunk in chunks(slices, chunk_sizes):
         slice_chunk = list(map(mean, zip(*slice_chunk)))
-        new_slices.append(slice_chunk)
+        chunk_slices.append(slice_chunk)
 
-    if len(new_slices) == hm_slices-1:
-        new_slices.append(new_slices[-1])
+    if len(chunk_slices) == num_slices - 1:
+        chunk_slices.append(chunk_slices[-1])
 
-    if len(new_slices) == hm_slices-2:
-        new_slices.append(new_slices[-1])
-        new_slices.append(new_slices[-1])
+    if len(chunk_slices) == num_slices - 2:
+        chunk_slices.append(chunk_slices[-1])
+        chunk_slices.append(chunk_slices[-1])
 
-    if len(new_slices) == hm_slices+2:
-        new_val = list(map(mean, zip(*[new_slices[hm_slices-1],new_slices[hm_slices],])))
-        del new_slices[hm_slices]
-        new_slices[hm_slices-1] = new_val
+    if len(chunk_slices) == num_slices + 2:
+        val = list(map(mean, zip(*[chunk_slices[num_slices-1],chunk_slices[num_slices],])))
+        del chunk_slices[num_slices]
+        chunk_slices[num_slices-1] = val
         
-    if len(new_slices) == hm_slices+1:
-        new_val = list(map(mean, zip(*[new_slices[hm_slices-1],new_slices[hm_slices],])))
-        del new_slices[hm_slices]
-        new_slices[hm_slices-1] = new_val
+    if len(chunk_slices) == num_slices + 1:
+        val = list(map(mean, zip(*[chunk_slices[num_slices-1],chunk_slices[num_slices],])))
+        del chunk_slices[num_slices]
+        chunk_slices[num_slices-1] = val
 
-    if visualize:
-        fig = plt.figure()
-        for num,each_slice in enumerate(new_slices):
-            y = fig.add_subplot(4,5,num+1)
-            y.imshow(each_slice, cmap='gray')
-        plt.show()
+    # converting the csv label to an easier to use numpy array
+    if patient_label == 1:
+        # cancer
+        patient_label = np.array([0,1])
+    else:
+        # not cancer
+        patient_label = np.array([1,0])
 
-    if label == 1: label=np.array([0,1])
-    elif label == 0: label=np.array([1,0])
-        
-    return np.array(new_slices),label
+    # return the 20 normalized slices and the corresponding patient label
+    return np.array(chunk_slices), patient_label
 
-#                                               stage 1 for real.
-#data_dir = 'sample_images/'
-data_dir = 'D:/stage1/stage1/'
-patients = os.listdir(data_dir)
-labels = pd.read_csv('data/stage1_labels.csv', index_col=0)
+# simple local helper mean function
+def mean(n):
+    return (sum(n) / len(n))
 
-much_data = []
-for num,patient in enumerate(patients):
-    if num % 1 == 0:
-        print(num)
+# create n-sized chunks from list l
+def chunks(l, n):
+    count = 0
+    for i in range(0, len(l), n):
+        if (count < num_slices):
+            # fancy python yield statement
+            yield l[i:i + n]
+            count = count + 1
+
+# iterate through all patients and preprocess their data
+# add preprocessed data to processed_data list
+for num, patient in enumerate(patients):
+    print("Currently preprocessing patient " + str(num))
+    new_time = time.time()
     try:
-        img_data,label = process_data(patient,labels,img_px_size=IMG_SIZE_PX, hm_slices=SLICE_COUNT)
-        #print(img_data.shape,label)
-        much_data.append([img_data,label])
+        patient_data, patient_label = preprocess(patient)
+        processed_data.append([patient_data, patient_label])
+        print("\tTime to preprocess: %s seconds." % (time.time() - new_time))
     except KeyError as e:
-        print('This is unlabeled data!')
+        print('\tError: unlabeled data, skipping patient...')
 
-np.save('muchdata-{}-{}-{}.npy'.format(IMG_SIZE_PX,IMG_SIZE_PX,SLICE_COUNT), much_data)
-print("Total running time: %s." % (time.time() - start_time))
+# save processed_data list into 'processed_data.npy' for cnn consumption
+np.save('processed_data.npy', processed_data)
+# how long dis take?
+print("\nDone! Total running time: %s." % (time.time() - start_time))

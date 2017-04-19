@@ -21,7 +21,7 @@ During development we used the sample_images/ dataset since it only contains 20 
 
 ## How to Run
 
-First you need to run `preprocess.py` in order to produce `muchdata-50-50-20.py`. Once you have built `muchdata-50-50-20.py` you can run `conv_nn.py`. If you have the option to use tensorflow on your GPU everything will run MUCH faster. It takes ~320 seconds to run `conv_nn.py` with 10 epochs on a GTX 1070 with 8.00GiB of ram and a memory clock rate of 1.7715 GHz.
+First you need to run `preprocess.py` in order to produce `processed_data.npy`. Once you have built `processed_data.npy` you can run `cnn.py`. If you have the option to use tensorflow on your GPU everything will run MUCH faster. It takes ~320 seconds to run `cnn.py` with 10 epochs on a GTX 1070 with 8.00GiB of ram and a memory clock rate of 1.7715 GHz.
 
 ## Results
 
@@ -46,5 +46,4 @@ In order to run our code on GPU to obtain similar results you will need the foll
 - [NumPy](http://www.numpy.org/)
 - [Pandas](http://pandas.pydata.org/)
 - dicom - `pip install --upgrade dicom`
-- [matplotlib](https://matplotlib.org/)
 - cv2 - `pip install --upgrade opencv`

@@ -53,7 +53,7 @@ def convolutional_neural_network(x):
 
     return output
 
-much_data = np.load('muchdata-50-50-20.npy')
+much_data = np.load('processed_data.npy')
 # If you are working with the basic sample data, use maybe 2 instead of 100 here... you don't have enough data to really do this
 #train_data = much_data[:-2]
 #validation_data = much_data[-2:]
@@ -64,9 +64,10 @@ def train_neural_network(x):
     iter_time = time.time()
     prediction = convolutional_neural_network(x)
     cost = tf.reduce_mean( tf.nn.softmax_cross_entropy_with_logits(logits=prediction, labels=y) )
-    optimizer = tf.train.AdamOptimizer(learning_rate=1e-3).minimize(cost)
-    
-    hm_epochs = 10
+    #optimizer = tf.train.AdamOptimizer(learning_rate=1e-3).minimize(cost)
+    optimizer = tf.train.AdamOptimizer(learning_rate=.01).minimize(cost)
+
+    hm_epochs = 100
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         
