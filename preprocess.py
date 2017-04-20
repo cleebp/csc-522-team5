@@ -15,8 +15,7 @@ import time
 
 # constants and globals
 start_time = time.time()
-#data_dir = 'D:/stage1/stage1/' # obviously change  this to the correct location
-data_dir = 'sample_images/'
+data_dir = 'D:/stage1/stage1/' # obviously change this to the correct location
 patients = os.listdir(data_dir)
 labels = pd.read_csv('data/stage1_labels.csv', index_col = 0)
 processed_data = []

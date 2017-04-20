@@ -1,126 +1,143 @@
+"""
+"  @title: cnn.py
+"  @version: 4/19/17
+"  @authors: Team 5
+"
+"  References: Note since neural networks and CNNs were never covered in class we had to seek out online
+"              tutorials on building a CNN with tensorflow, besides stack overflow the main reference we 
+"              used was the blog: https://pythonprogramming.net/ and in particular the following tutorials.
+"    - https://pythonprogramming.net/neural-networks-machine-learning-tutorial/
+"    - https://pythonprogramming.net/tensorflow-introduction-machine-learning-tutorial/
+"    - https://pythonprogramming.net/convolutional-neural-network-cnn-machine-learning-tutorial/
+"    - https://pythonprogramming.net/cnn-tensorflow-convolutional-nerual-network-machine-learning-tutorial/
+"""
+
+# imports
 import tensorflow as tf
 import numpy as np
 import time
 
+# constants and globals
 start_time = time.time()
-IMG_SIZE_PX = 50
-SLICE_COUNT = 20
-
-n_classes = 2
-batch_size = 10
-
 x = tf.placeholder('float')
 y = tf.placeholder('float')
+img_dimension = 50
+num_slices = 20
+num_classes = 2
 
-keep_rate = 0.8
+# load in processed data from the results of preprocess.py
+processed_data = np.load('processed_data.npy')
+# could probably work on these values for the training/validation set to better train the CNN for other data sets
+training_set = processed_data[:-100]
+validation_set = processed_data[-100:]
 
+# reference: https://www.tensorflow.org/tutorials/deep_cnn
+def maxpool3d(x):
+    return tf.nn.max_pool3d(x, ksize=[1,2,2,2,1], strides=[1,2,2,2,1], padding='SAME')
+
+# reference: https://www.tensorflow.org/tutorials/deep_cnn
 def conv3d(x, W):
     return tf.nn.conv3d(x, W, strides=[1,1,1,1,1], padding='SAME')
 
-def maxpool3d(x):
-    #                        size of window         movement of window as you slide about
-    return tf.nn.max_pool3d(x, ksize=[1,2,2,2,1], strides=[1,2,2,2,1], padding='SAME')
+# reference (see lines 6-12): https://pythonprogramming.net/cnn-tensorflow-convolutional-nerual-network-machine-learning-tutorial/
+def cnn(x):
+    # had better accuracies with 3,3,3 rather than 5,5,5
+    # 32 features in convolution 1, 64 features in convolution 2
+    # setup weights for convolution 1 and 2
+    weights = {'convolution1_weights':tf.Variable(tf.random_normal([3,3,3,1,32])), 'convolution2_weights':tf.Variable(tf.random_normal([5,5,5,32,64])),
+               'fc_weights':tf.Variable(tf.random_normal([54080,1024])), 'out':tf.Variable(tf.random_normal([1024, num_classes]))}
 
-def convolutional_neural_network(x):
-    #                # 5 x 5 x 5 patches, 1 channel, 32 features to compute.
-    weights = {'W_conv1':tf.Variable(tf.random_normal([3,3,3,1,32])),
-               #       5 x 5 x 5 patches, 32 channels, 64 features to compute.
-               'W_conv2':tf.Variable(tf.random_normal([3,3,3,32,64])),
-               #                                  64 features
-               'W_fc':tf.Variable(tf.random_normal([54080,1024])),
-               'out':tf.Variable(tf.random_normal([1024, n_classes]))}
+    # setup biases for convolution 1 and 2
+    biases = {'convolution1_biases':tf.Variable(tf.random_normal([32])), 'convolution2_biases':tf.Variable(tf.random_normal([64])),
+              'fc_biases':tf.Variable(tf.random_normal([1024])), 'out':tf.Variable(tf.random_normal([num_classes]))}
 
-    biases = {'b_conv1':tf.Variable(tf.random_normal([32])),
-               'b_conv2':tf.Variable(tf.random_normal([64])),
-               'b_fc':tf.Variable(tf.random_normal([1024])),
-               'out':tf.Variable(tf.random_normal([n_classes]))}
+    # reshape data, this easily throws errors if you dont do preprocessing correctly
+    x = tf.reshape(x, shape=[-1, img_dimension, img_dimension, num_slices, 1])
 
-    #                            image X      image Y        image Z
-    x = tf.reshape(x, shape=[-1, IMG_SIZE_PX, IMG_SIZE_PX, SLICE_COUNT, 1])
+    # convolution 1 with max pooling
+    convolution1 = tf.nn.relu(conv3d(x, weights['convolution1_weights']) + biases['convolution1_biases'])
+    convolution1 = maxpool3d(convolution1)
 
-    conv1 = tf.nn.relu(conv3d(x, weights['W_conv1']) + biases['b_conv1'])
-    conv1 = maxpool3d(conv1)
+    # convolution 2 with max pooling
+    convolution2 = tf.nn.relu(conv3d(convolution1, weights['convolution2_weights']) + biases['convolution2_biases'])
+    convolution2 = maxpool3d(convolution2)
 
-
-    conv2 = tf.nn.relu(conv3d(conv1, weights['W_conv2']) + biases['b_conv2'])
-    conv2 = maxpool3d(conv2)
-
-    fc = tf.reshape(conv2,[-1, 54080])
-    fc = tf.nn.relu(tf.matmul(fc, weights['W_fc'])+biases['b_fc'])
-    fc = tf.nn.dropout(fc, keep_rate)
+    fc = tf.reshape(convolution2,[-1, 54080])
+    fc = tf.nn.relu(tf.matmul(fc, weights['fc_weights'])+biases['fc_biases'])
+    fc = tf.nn.dropout(fc, 0.8)
 
     output = tf.matmul(fc, weights['out'])+biases['out']
-
     return output
 
-much_data = np.load('processed_data.npy')
-# If you are working with the basic sample data, use maybe 2 instead of 100 here... you don't have enough data to really do this
-#train_data = much_data[:-2]
-#validation_data = much_data[-2:]
-train_data = much_data[:-100]
-validation_data = much_data[-100:]
-
-def train_neural_network(x):
-    iter_time = time.time()
-    prediction = convolutional_neural_network(x)
-    cost = tf.reduce_mean( tf.nn.softmax_cross_entropy_with_logits(logits=prediction, labels=y) )
-    #optimizer = tf.train.AdamOptimizer(learning_rate=1e-3).minimize(cost)
+# reference (see lines 6-12): https://pythonprogramming.net/cnn-tensorflow-convolutional-nerual-network-machine-learning-tutorial/
+def training(x):
+    new_time = time.time()
+    prediction = cnn(x)
+    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=prediction, labels=y))
+    # can play wtih the learning rate here to achieve different results, originally it was .0001
     optimizer = tf.train.AdamOptimizer(learning_rate=.01).minimize(cost)
 
-    hm_epochs = 100
+    # 10 epochs is enough to get close to an optimum accuracy, model usually reaches an upper bound by 14-15 epochs
+    # not sure which is better, I think we may be overfitting the data with 20 but the accuracy is MUCH better by that point
+    num_epochs = 20
+    # setup our tensorflow session
+    # also used reference: https://www.tensorflow.org/tutorials/deep_cnn
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        
-        successful_runs = 0
-        total_runs = 0
-        
-        for epoch in range(hm_epochs):
-            epoch_loss = 0
+
+        # setup our counts
+        success_count = 0
+        runs_count = 0
+
+        # run for each epoch
+        for epoch in range(num_epochs):
+            loss = 0
+            # timing is pretty nice here since this stuff can take FOREVER
             new_time = time.time()
-            for data in train_data:
-                total_runs += 1
+            for data in training_set:
+                runs_count += 1
                 try:
                     X = data[0]
                     Y = data[1]
                     _, c = sess.run([optimizer, cost], feed_dict={x: X, y: Y})
-                    epoch_loss += c
-                    successful_runs += 1
+                    loss += c
+                    success_count += 1
                 except Exception as e:
-                    # I am passing for the sake of notebook space, but we are getting 1 shaping issue from one 
-                    # input tensor. Not sure why, will have to look into it. Guessing it's
-                    # one of the depths that doesn't come to 20.
+                    print(str(e))
                     pass
-                    #print(str(e))
             
-            print('Epoch', epoch+1, 'completed out of',hm_epochs,'loss:',epoch_loss)
-            print("Time to complete: %s seconds." % (time.time() - new_time))
+            print("Completed epoch " + str(epoch+1) + " out of " + str(num_epochs))
+            print("\tLoss: " + str(loss))
+            print("\tTime to complete: %s seconds." % (time.time() - new_time))
+
             correct = tf.equal(tf.argmax(prediction, 1), tf.argmax(y, 1))
             accuracy = tf.reduce_mean(tf.cast(correct, 'float'))
-
-            print('Accuracy:',accuracy.eval({x:[i[0] for i in validation_data], y:[i[1] for i in validation_data]}),"\n")
+            accuracy = accuracy.eval({x:[i[0] for i in validation_set], y:[i[1] for i in validation_set]})
+            print('\tAccuracy: ' + str(accuracy) + "\n")
             
-        print('Done. Finishing accuracy:')
-        accuracy = accuracy.eval({x:[i[0] for i in validation_data], y:[i[1] for i in validation_data]})
-        print('Accuracy:',accuracy)
-        
-        print('fitment percent:',successful_runs/total_runs)
-        print("Total running time: %s seconds." % (time.time() - iter_time))
+        print("Jobs Done!")
+        accuracy = accuracy.eval({x: [i[0] for i in validation_set], y: [i[1] for i in validation_set]})
+        fitment = success_count/runs_count
+        print("Finishing accuracy: " + str(accuracy))
+        print("Finishing fitment: " + str(fitment))
+        print("Total running time: %s seconds." % (time.time() - new_time))
 
+        # write (append) results to output.txt
         fh = open("output.txt", "a+")
         fh.write(str(accuracy) + "\n")
         fh.close()
         return(accuracy)
 
-# Run this locally:
+# write (append) to output.txt our results as we get them, if anything  happens we can look back at our results,
+# and more importantly we can let it run forever(TM) and have a record of our results
 fh = open("output.txt", "a+")
 fh.write("=== Beginning new Trial ===\n")
 fh.close()
-
 print("Beginning first cnn interation...")
-accuracy = train_neural_network(x)
+accuracy = training(x)
 while(accuracy < 0.69):
     print("\n === Accuracy is less than target, trying a new iteration... ===")
-    accuracy = train_neural_network(x)
+    accuracy = training(x)
 
 print("Success!")
-print("It took %s seconds to achieve an accuracy of 0.69" % (time.time() - start_time))
+print("It took %s seconds to achieve an accuracy >= 0.69" % (time.time() - start_time))

@@ -47,3 +47,13 @@ In order to run our code on GPU to obtain similar results you will need the foll
 - [Pandas](http://pandas.pydata.org/)
 - dicom - `pip install --upgrade dicom`
 - cv2 - `pip install --upgrade opencv`
+
+## References
+
+The following are the major tutorials/blog posts that helped us figure out how to create a CNN using TensorFlow:
+- [Official TensorFlow CNN Tutorial](https://www.tensorflow.org/tutorials/deep_cnn)
+- [pythonprogramming blog](https://pythonprogramming.net/)
+- [pythonprogramming neural networks and machine learning tutorial](https://pythonprogramming.net/neural-networks-machine-learning-tutorial/)
+- [pythonprogramming TensorFlow and intro to machine learning tutorial](https://pythonprogramming.net/tensorflow-introduction-machine-learning-tutorial/)
+- [pythonprogramming cnn machine learning tutorial](https://pythonprogramming.net/convolutional-neural-network-cnn-machine-learning-tutorial/)
+- [pythonprogramming cnn TensorFlow tutorial](https://pythonprogramming.net/cnn-tensorflow-convolutional-nerual-network-machine-learning-tutorial/)
