@@ -112,8 +112,8 @@ def training(x):
 
             correct = tf.equal(tf.argmax(prediction, 1), tf.argmax(y, 1))
             accuracy = tf.reduce_mean(tf.cast(correct, 'float'))
-            accuracy = accuracy.eval({x:[i[0] for i in validation_set], y:[i[1] for i in validation_set]})
-            print('\tAccuracy: ' + str(accuracy) + "\n")
+            accuracy_local = accuracy.eval({x:[i[0] for i in validation_set], y:[i[1] for i in validation_set]})
+            print('\tAccuracy: ' + str(accuracy_local) + "\n")
             
         print("Jobs Done!")
         accuracy = accuracy.eval({x: [i[0] for i in validation_set], y: [i[1] for i in validation_set]})
